@@ -1,0 +1,5 @@
+نمونه برای تست UI:
+
+vless://UUID@host.example.com:443?security=tls&type=ws&path=%2Fws&host=host.example.com#Demo
+
+این فقط مثال است و قابل اتصال نیست. کانفیگ واقعی خودت را از پنل وارد کن.
