@@ -3,7 +3,9 @@ name: Build Breeze VPN APK
 on:
   workflow_dispatch:
   push:
-    branches: [ main, master ]
+    branches:
+      - main
+      - master
 
 permissions:
   contents: read
@@ -11,19 +13,30 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
 
+    steps:
+      # 1. دریافت پروژه
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. نصب Flutter
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
 
+      # 3. ساخت فایل‌های Android
       - name: Generate Android platform files
-        run: flutter create --no-pub --platforms=android --org com.breeze --project-name breeze_vpn .
+        run: |
+          flutter create \
+            --no-pub \
+            --platforms=android \
+            --org com.breeze \
+            --project-name breeze_vpn \
+            .
 
+      # 4. نصب Java 17
       - name: Set up Java 17
         uses: actions/setup-java@v5
         with:
@@ -31,25 +44,26 @@ jobs:
           java-version: '17'
           cache: gradle
 
+      # 5. اصلاح تنظیمات Android
       - name: Patch Android manifest and app label
         run: python3 scripts/patch_android.py
 
-
+      # 6. دریافت پکیج‌ها
       - name: Get packages
         run: flutter pub get
 
-      - name: Remove generated placeholder test
-        run: rm -f test/widget_test.dart
-
+      # 7. بررسی کد
       - name: Analyze
         run: flutter analyze --no-fatal-infos
 
-      - name: Build release APK
-        run: flutter build apk --release
+      # 8. ساخت APK برای معماری‌های مختلف
+      - name: Build release APKs
+        run: flutter build apk --release --split-per-abi
 
-      - name: Upload APK
+      # 9. آپلود APKها
+      - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
-          name: breeze-vpn-release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          name: breeze-vpn-release-apks
+          path: build/app/outputs/flutter-apk/*-release.apk
           if-no-files-found: error
