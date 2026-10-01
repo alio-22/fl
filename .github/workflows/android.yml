@@ -1,0 +1,55 @@
+name: Build Breeze VPN APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Generate Android platform files
+        run: flutter create --no-pub --platforms=android --org com.breeze --project-name breeze_vpn .
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Patch Android manifest and app label
+        run: python3 scripts/patch_android.py
+
+
+      - name: Get packages
+        run: flutter pub get
+
+      - name: Remove generated placeholder test
+        run: rm -f test/widget_test.dart
+
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: breeze-vpn-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
